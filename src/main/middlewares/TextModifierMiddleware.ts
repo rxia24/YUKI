@@ -26,9 +26,9 @@ export default class TextInterceptorMiddleware
       if (context.text === '') return
     }
     if (this.deduplicateLine) {
-      //hardcoded as 3, might be dangerous
-      if (context.text.length > 3){
-          var header = context.text.substring(0,3);
+      //hardcoded as 5, might be dangerous
+      if (context.text.length > 5){
+          var header = context.text.substring(0,5);
           var parts = context.text.split(header);
           context.text = header + parts[parts.length - 1];
       }

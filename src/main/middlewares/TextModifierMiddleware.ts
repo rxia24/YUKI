@@ -4,10 +4,12 @@ export default class TextInterceptorMiddleware
   implements yuki.Middleware<yuki.TextOutputObject> {
   private removeAscii: boolean
   private deduplicate: boolean
+  private deduplicateLine: boolean
 
   constructor (config: yuki.Config.Texts['modifier']) {
     this.removeAscii = config.removeAscii
     this.deduplicate = config.deduplicate
+    this.deduplicateLine = config.deduplicateLine
     debug('initialized')
   }
 
@@ -23,7 +25,15 @@ export default class TextInterceptorMiddleware
       context.text = context.text.replace(/(\S+)\1/g, '$1')
       if (context.text === '') return
     }
-
+    if (this.deduplicateLine) {
+      //hardcoded as 3, might be dangerous
+      if (context.text.length > 3){
+          var header = context.text.substring(0,3);
+          var parts = context.text.split(header);
+          context.text = header + parts[parts.length - 1];
+      }
+      if (context.text === '') return
+    }
     next(context)
   }
 }

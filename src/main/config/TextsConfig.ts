@@ -21,7 +21,8 @@ export default class TextsConfig extends Config {
       },
       modifier: {
         removeAscii: false,
-        deduplicate: false
+        deduplicate: false,
+        deduplicateLine: false
       }
     }
   }

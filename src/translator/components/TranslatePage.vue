@@ -1,19 +1,36 @@
 <template>
-  <div>
-    <mu-container v-if="isMecabEnable" class="text-center">
-      <yk-mecab-text :patterns="currentPatterns"></yk-mecab-text>
-    </mu-container>
-    <mu-container
-      v-else
-      class="text-center"
-      :style="{color: originalTextColor, fontSize: `${originalTextSize}px`}"
-    >{{currentOriginText}}</mu-container>
-    <yk-text-display
-      v-for="(translation, key) in translationsForCurrentIndex.translations"
-      :key="key"
-      :name="key"
-      :translation="translation"
-    ></yk-text-display>
+  <div class="three-columns">
+    <mu-button icon v-if="isPreviousTextValid" @click="goToPreviousText">
+      <mu-icon class="navigation-button" color="white" value="keyboard_arrow_left"></mu-icon>
+    </mu-button>
+    <div class="navigation-button" v-else></div>
+
+    <div style="flex: 1;">
+      <mu-container v-if="isMecabEnable" class="text-center">
+        <yk-mecab-text :patterns="currentPatterns"></yk-mecab-text>
+      </mu-container>
+      <mu-container
+        v-else
+        class="text-center"
+        :style="{color: originalTextColor, fontSize: `${originalTextSize}px`}"
+      >{{currentOriginText}}</mu-container>
+      <yk-text-display
+        v-for="(translation, key) in currentTranslations"
+        :key="key"
+        :name="key"
+        :translation="translation"
+      ></yk-text-display>
+    </div>
+
+    <div v-if="isNextTextValid" class="navigation-button">
+      <mu-button icon @click="goToNextText">
+        <mu-icon color="white" value="keyboard_arrow_right"></mu-icon>
+      </mu-button>
+      <mu-button icon @click="goToLatestText">
+        <mu-icon color="white" value="redo"></mu-icon>
+      </mu-button>
+    </div>
+    <div class="navigation-button" v-else></div>
   </div>
 </template>
 
@@ -48,22 +65,26 @@ export default class TranslatePage extends Vue {
   @namespace('View').State('isButtonsShown')
   public isButtonsShown!: boolean
 
-  @namespace('Hooks').Getter('getLastTextById')
-  public getLastTextById!: (id: number) => string
-  @namespace('Hooks').Getter('getLastPatternsById')
-  public getLastPatternsById!: (id: number) => yuki.MeCabPatterns
+  @namespace('Hooks').Getter('getTextByHandleAndId')
+  public getTextByHandleAndId!: (handle: number, id: number) => string
+  @namespace('Hooks').Getter('getPatternsByHandleAndId')
+  public getPatternsByHandleAndId!: (handle: number, id: number) => yuki.MeCabPatterns
+  @namespace('Hooks').Getter('getTranslationsByHandleAndId')
+  public getTranslationsByHandleAndId!:
+    (handle: number, id: number) => yuki.Translations['translations']
+  @namespace('Hooks').Getter('getLastIndexByHandle')
+  public getLastIndexByHandle!: (handle: number) => number
 
   @namespace('Hooks').State('currentDisplayHookIndex')
   public currentIndex!: number
-
-  @namespace('Hooks').State('translationsForCurrentIndex')
-  public translationsForCurrentIndex!: yuki.Translations
 
   @namespace('Config').Getter('getOriginalText')
   public getOriginalText!: () => yuki.FontStyle
 
   @namespace('Hooks').State('isMecabEnable')
   public isMecabEnable!: boolean
+
+  public idOffset: number = 0
 
   get originalTextColor () {
     return this.getOriginalText().color
@@ -73,10 +94,57 @@ export default class TranslatePage extends Vue {
   }
 
   get currentOriginText () {
-    return this.getLastTextById(this.currentIndex)
+    return this.getTextByHandleAndId(
+      this.currentIndex, this.getLastIndexByHandle(this.currentIndex) + this.idOffset
+    )
   }
   get currentPatterns () {
-    return this.getLastPatternsById(this.currentIndex)
+    return this.getPatternsByHandleAndId(
+      this.currentIndex, this.getLastIndexByHandle(this.currentIndex) + this.idOffset
+    )
+  }
+  get currentTranslations () {
+    return this.getTranslationsByHandleAndId(
+      this.currentIndex, this.getLastIndexByHandle(this.currentIndex) + this.idOffset
+    )
+  }
+
+  get isPreviousTextValid () {
+    if (this.isMecabEnable) {
+      return this.getPatternsByHandleAndId(
+        this.currentIndex,
+        this.getLastIndexByHandle(this.currentIndex) + this.idOffset - 1
+      ).length !== 0
+    } else {
+      return this.getTextByHandleAndId(
+        this.currentIndex,
+        this.getLastIndexByHandle(this.currentIndex) + this.idOffset - 1
+      ) !== ''
+    }
+  }
+  get isNextTextValid () {
+    if (this.isMecabEnable) {
+      return this.getPatternsByHandleAndId(
+        this.currentIndex,
+        this.getLastIndexByHandle(this.currentIndex) + this.idOffset + 1
+      ).length !== 0
+    } else {
+      return this.getTextByHandleAndId(
+        this.currentIndex,
+        this.getLastIndexByHandle(this.currentIndex) + this.idOffset + 1
+      ) !== ''
+    }
+  }
+  public goToPreviousText () {
+    this.idOffset--
+  }
+  public goToNextText () {
+    this.idOffset++
+  }
+  public goToLatestText () {
+    while (this.isNextTextValid) {
+      this.idOffset++
+    }
   }
 
   public beforeRouteEnter (to: Route, from: Route, next: () => void) {
@@ -118,4 +186,13 @@ export default class TranslatePage extends Vue {
 </script>
 
 <style scoped>
+.three-columns {
+  display: box;
+  display: flex;
+  justify-content: space-between;
+}
+
+.navigation-button {
+  width: 48px;
+}
 </style>

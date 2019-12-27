@@ -1,10 +1,7 @@
 import { ipcRenderer } from 'electron'
 import IpcTypes from '../common/IpcTypes'
 
-import 'muse-ui-message/dist/muse-ui-message.all.css'
-import 'muse-ui-toast/dist/muse-ui-toast.all.css'
-import 'muse-ui/dist/muse-ui.css'
-import '../resources/material-icons/material-icons.css'
+import vuetify from '../common/vuetify'
 
 import axios from 'axios'
 import Vue from 'vue'
@@ -16,12 +13,7 @@ import store from './store'
 import VueI18n from 'vue-i18n'
 Vue.use(VueI18n)
 
-import MuseUI from 'muse-ui'
-const MuseUIMessage = require('muse-ui-message/dist/muse-ui-message.js')
-const MuseUIToast = require('muse-ui-toast/dist/muse-ui-toast.js')
-Vue.use(MuseUI)
-Vue.use(MuseUIMessage)
-Vue.use(MuseUIToast)
+import 'xterm/css/xterm.css'
 
 if (!process.env.IS_WEB) {
   Vue.use(require('vue-electron'))
@@ -39,21 +31,50 @@ ipcRenderer.send(IpcTypes.REQUEST_CONFIG, 'default')
 
 function next () {
   const i18n = new VueI18n({
-    locale
+    locale,
+    messages: {
+      zh: { gameAborted: '游戏运行失败，请参考调试信息' },
+      en: { gameAborted: 'Game aborted. Please refer to debug messages' }
+    }
   })
 
-  new Vue({
-    components: { App },
+  const vue = new Vue({
+    vuetify,
     router,
     store,
     i18n,
-    template: '<App/>'
+    render: (h) => h(App)
   }).$mount('#app')
 
   ipcRenderer.on(
     IpcTypes.HAS_CONFIG,
     (event: Electron.Event, name: string, cfgs: object) => {
       store.dispatch('Config/setConfig', { name, cfgs })
+    }
+  )
+  ipcRenderer.on(
+    IpcTypes.HAS_NEW_DEBUG_MESSAGE,
+    (event: Electron.Event, message: string) => {
+      store.commit('Gui/NEW_DEBUG_MESSAGE', { value: message })
+    }
+  )
+  ipcRenderer.on(
+    IpcTypes.GAME_ABORTED,
+    () => {
+      vue.$dialog.notify.error(vue.$i18n.t('gameAborted').toString())
+      store.commit('Gui/SET_GAME_STARTING_ENDED', { value: true })
+    }
+  )
+  ipcRenderer.on(
+    IpcTypes.HAS_RUNNING_GAME,
+    () => {
+      store.commit('Gui/SET_GAME_STARTING_ENDED', { value: true })
+    }
+  )
+  ipcRenderer.on(
+    IpcTypes.HAS_PROCESSES,
+    (event: Electron.Event, processes: yuki.Processes) => {
+      store.commit('Gui/SET_PROCESSES', { value: processes })
     }
   )
 }

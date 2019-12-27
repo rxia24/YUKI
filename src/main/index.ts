@@ -5,6 +5,7 @@ import * as path from 'path'
 import ConfigManager from './config/ConfigManager'
 import DownloaderFactory from './DownloaderFactory'
 import setupIpc from './setup/Ipc'
+import DictManager from './translate/DictManager'
 const debug = require('debug')('yuki:app')
 
 // check & make ./config folder
@@ -69,10 +70,17 @@ function createWindow () {
       }
     },
     icon: iconPath,
-    frame: false
+    frame: false,
+    show: false
   })
 
   mainWindow.loadURL(mainWinURL)
+
+  mainWindow.once('ready-to-show', () => {
+    if (!mainWindow) return
+
+    mainWindow.show()
+  })
 
   mainWindow.on('close', () => {
     if (!mainWindow) return
@@ -122,6 +130,9 @@ function createWindow () {
 
 app.on('ready', () => {
   DownloaderFactory.init()
+  DictManager.init(
+    ConfigManager.getInstance().get<yuki.Config.Default>('default').dictionaries
+  )
   createWindow()
 })
 

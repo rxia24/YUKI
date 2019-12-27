@@ -13,47 +13,46 @@
 </i18n>
 
 <template>
-  <div id="app">
-    <div id="top">
+  <v-app id="app">
+    <div id="top" v-if="showTitlebar">
       <yk-titlebar></yk-titlebar>
     </div>
-    <div id="content">
-      <router-view></router-view>
-      <div id="buttons" v-if="isButtonsShown">
-        <mu-button small flat to="/translate" color="white" style="width: 32%">{{$t('translate')}}</mu-button>
-        <mu-button
+    <div id="content" :style="{marginTop: showTitlebar ? '32px' : '0'}">
+      <div id="buttons-top" class="buttons" v-if="isButtonsShown && isWindowTooHigh">
+        <v-btn small text dark to="/translate" style="width: 32%">{{$t('translate')}}</v-btn>
+        <v-btn small text dark to="/hooks" style="width: 32%">{{$t('textHookSettings')}}</v-btn>
+        <v-btn
           small
-          flat
-          to="/hooks"
-          color="white"
-          style="width: 32%"
-        >{{$t('textHookSettings')}}</mu-button>
-        <mu-button
-          small
-          flat
+          text
+          dark
           to="/settings"
           color="white"
           style="width: 32%"
-        >{{$t('translatorSettings')}}</mu-button>
+        >{{$t('translatorSettings')}}</v-btn>
+      </div>
+      <router-view></router-view>
+      <div id="buttons-bottom" class="buttons" v-if="isButtonsShown && (!isWindowTooHigh)">
+        <v-btn small text dark to="/translate" style="width: 32%">{{$t('translate')}}</v-btn>
+        <v-btn small text dark to="/hooks" style="width: 32%">{{$t('textHookSettings')}}</v-btn>
+        <v-btn
+          small
+          text
+          dark
+          to="/settings"
+          color="white"
+          style="width: 32%"
+        >{{$t('translatorSettings')}}</v-btn>
       </div>
     </div>
-  </div>
+  </v-app>
 </template>
 
 <script lang="ts">
 import Vue from 'vue'
-import {
-  Component,
-  Watch
-} from 'vue-property-decorator'
-import {
-  namespace
-} from 'vuex-class'
+import { Component, Watch } from 'vue-property-decorator'
+import { namespace } from 'vuex-class'
 
-import {
-  ipcRenderer,
-  remote
-} from 'electron'
+import { ipcRenderer, remote } from 'electron'
 import IpcTypes from '../common/IpcTypes'
 
 import YkTitlebar from '@/components/Titlebar.vue'
@@ -64,25 +63,12 @@ import YkTitlebar from '@/components/Titlebar.vue'
   }
 })
 export default class App extends Vue {
-  @(namespace('View').State('isButtonsShown'))
-  public isButtonsShown!: boolean
-
-  @(namespace('Hooks').Getter('getTextByHandleAndId'))
-  public getTextByHandleAndId!: (handle: number, id: number) => string
-  @(namespace('Hooks').Getter('getLastIndexByHandle'))
-  public getLastIndexByHandle!: (handle: number) => number
-
-  @(namespace('Hooks').State('currentDisplayHookIndex'))
-  public currentIndex!: number
-
-  @(namespace('Config').Getter('getBackgroundColor'))
-  public getBackgroundColor!: () => string
   get backgroundColor () {
     return this.getBackgroundColor()
   }
-  @Watch('backgroundColor')
-  public onBackgroundColorChange () {
-    document.body.style.backgroundColor = this.backgroundColor
+
+  get showTitlebar () {
+    return !this.getAutoHideTitlebar() || this.isButtonsShown
   }
 
   get currentId () {
@@ -90,6 +76,27 @@ export default class App extends Vue {
   }
   get currentOriginText () {
     return this.getTextByHandleAndId(this.currentIndex, this.currentId)
+  }
+  @namespace('View').State('isButtonsShown') public isButtonsShown!: boolean
+  @namespace('View').State('isWindowTooHigh') public isWindowTooHigh!: boolean
+  @namespace('Config').Getter('getAutoHideTitlebar')
+  public getAutoHideTitlebar!: () => boolean
+
+  @namespace('Hooks').Getter('getTextByHandleAndId')
+  public getTextByHandleAndId!: (handle: number, id: number) => string
+  @namespace('Hooks').Getter('getLastIndexByHandle')
+  public getLastIndexByHandle!: (handle: number) => number
+
+  @namespace('Hooks').State('currentDisplayHookIndex')
+  public currentIndex!: number
+
+  @namespace('Config').Getter('getBackgroundColor')
+  public getBackgroundColor!: () => string
+
+  @namespace('View').State('isGetDictResult') public isGetDictResult!: boolean
+  @Watch('backgroundColor')
+  public onBackgroundColorChange () {
+    document.body.style.backgroundColor = this.backgroundColor
   }
 
   public mounted () {
@@ -113,7 +120,10 @@ export default class App extends Vue {
       this.$store.dispatch('View/setButtonsShown', true)
     })
     document.addEventListener('mouseleave', () => {
-      if (this.currentOriginText !== '') {
+      if (
+        this.$router.currentRoute.path === '/translate' &&
+        this.currentOriginText !== ''
+      ) {
         this.$store.dispatch('View/setButtonsShown', false)
       }
     })
@@ -123,6 +133,11 @@ export default class App extends Vue {
     const newHeight = document.body.offsetHeight + offset
     const window = remote.getCurrentWindow()
     const width = window.getSize()[0]
+    if (newHeight > 640) {
+      this.$store.dispatch('View/setWindowTooHigh', true)
+    } else {
+      this.$store.dispatch('View/setWindowTooHigh', false)
+    }
     window.setSize(width, newHeight)
   }
 
@@ -137,14 +152,17 @@ export default class App extends Vue {
   }
 
   public updated () {
-    if (this.$router.currentRoute.path === '/translate') {
-      if (this.isButtonsShown) {
+    if (
+      this.$router.currentRoute.path === '/translate' &&
+      !this.isGetDictResult
+    ) {
+      if (this.isButtonsShown && !this.isWindowTooHigh) {
         this.$nextTick(() => {
-          this.updateWindowHeight(64)
+          this.updateWindowHeight(24)
         })
       } else {
         this.$nextTick(() => {
-          this.updateWindowHeight(40)
+          this.updateWindowHeight(0)
         })
       }
     }
@@ -155,6 +173,13 @@ export default class App extends Vue {
 <style>
 * {
   margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+#app .v-application--wrap {
+  min-height: 0;
+  height: inherit;
 }
 
 html::-webkit-scrollbar {
@@ -164,11 +189,10 @@ html::-webkit-scrollbar {
 html,
 body,
 #app {
-  min-width: 100%;
-  min-height: 100%;
   margin: 0;
   padding: 0;
   background: none;
+  display: block;
 }
 
 body {
@@ -191,7 +215,7 @@ body {
 }
 
 .text-h3 {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .text-p {
@@ -232,18 +256,19 @@ body {
   top: 0;
 }
 
-#app #content {
-  margin-top: 32px;
+#app #content #buttons-top {
+  width: 100%;
+  margin-left: 16px;
 }
 
-#app #content #buttons {
+#app #content #buttons-bottom {
   position: fixed;
   bottom: 0;
   width: 100%;
   left: 16px;
 }
 
-#app #content #buttons .mu-button {
+#app #content .buttons .v-btn {
   text-align: center;
 }
 
@@ -252,6 +277,17 @@ body {
   padding: 16px;
   position: fixed;
   top: 32px;
+  width: 100%;
+  height: 88%;
+  overflow-x: hidden;
+  overflow-y: scroll;
+}
+
+.fixed-scroll-margin-top {
+  margin: 0 auto;
+  padding: 16px;
+  position: fixed;
+  top: 64px;
   width: 100%;
   height: 88%;
   overflow-x: hidden;

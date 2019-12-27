@@ -4,7 +4,7 @@
   "zh": {
     "underConstruction": "开发中m( _ _ )m",
     "pleaseModifyConfigurationFile": "请通过修改配置文件 config\\config.json 来配置翻译器",
-    "defaultTranslators": "（默认提供腾讯，沪江，谷歌，有道翻译）"
+    "defaultTranslators": "（默认提供腾讯，沪江，谷歌，有道，彩云翻译）"
   },
   "en": {
     "underConstruction": "Under construction m( _ _ )m",
@@ -16,14 +16,14 @@
 
 <template>
   <div>
-    <mu-button color="primary">{{$t('save')}}</mu-button>
-    <mu-button color="warning">{{$t('reset')}}</mu-button>
+    <v-btn rounded large color="primary">{{$t('save')}}</v-btn>
+    <v-btn rounded large color="warning">{{$t('reset')}}</v-btn>
     <p class="text-h1">{{$t('translatorSettings')}}</p>
     <p class="all-center text-h3">
       {{$t('underConstruction')}}
-      <br>
+      <br />
       {{$t('pleaseModifyConfigurationFile')}}
-      <br>
+      <br />
       {{$t('defaultTranslators')}}
     </p>
   </div>
@@ -50,11 +50,11 @@ export default class TranslatorSettings extends Vue { }
 </script>
 
 <style scoped>
-.mu-button {
+.v-btn {
   margin: 8px;
 }
 
-.mu-button:first-child {
+.v-btn:first-child {
   margin: 0;
 }
 </style>

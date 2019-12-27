@@ -20,9 +20,15 @@ export default class DefaultConfig extends Config {
         },
         {
           enable: true,
+          external: true,
+          jsFile: 'config\\hjdictApi.js',
+          name: '有道'
+        },
+        {
+          enable: true,
           method: 'POST',
           name: '谷歌',
-          requestBodyFormat: 'X{"q": %TEXT%, "sl": "ja", "hl": "zh-CN"}',
+          requestBodyFormat: 'X{"q": %TEXT%, "sl": "ja", "tl": "zh-CN"}',
           responseBodyPattern: 'Rclass="t0">([^<]*)<',
           url: 'https://translate.google.cn/m'
         },
@@ -30,10 +36,10 @@ export default class DefaultConfig extends Config {
           enable: true,
           method: 'POST',
           name: '彩云',
-          requestBodyFormat: 'J{"source": %TEXT%, "trans_type": "ja2zh", ' +
-                              '"request_id": "web_fanyi", "os_type": "web", ' +
-                              '"dict": "false", "cached": "false", "replaced": "false"}',
-          requestHeaders: '{"X-Authorization": "token:cy4fgbil24jucmh8jfr5"}',
+          requestBodyFormat:
+            'J{"source": %TEXT%, "trans_type": "ja2zh", ' +
+            '"request_id": "demo", "detect": "true"}',
+          requestHeaders: '{"X-Authorization": "token 3975l6lr5pcbvidl6jl2"}',
           responseBodyPattern: 'J%RESPONSE%.target',
           url: 'https://api.interpreter.caiyunai.com/v1/translator'
         },
@@ -45,8 +51,10 @@ export default class DefaultConfig extends Config {
         }
       ],
       translators: { jBeijing: { enable: false, path: '', dictPath: '' } },
+      dictionaries: { lingoes: { enable: false, path: '' } },
       mecab: { enable: false, path: '' },
-      librariesRepoUrl: 'https://github.com/project-yuki/libraries/raw/master/_pack/',
+      librariesRepoUrl:
+        'https://github.com/project-yuki/libraries/raw/master/_pack/',
       language: 'zh'
     }
   }

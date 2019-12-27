@@ -1,10 +1,9 @@
 import { ipcRenderer, remote } from 'electron'
 import IpcTypes from '../common/IpcTypes'
 
-import 'muse-ui/dist/muse-ui.css'
-import '../resources/material-icons/material-icons.css'
-
 import './class-component-hooks'
+
+import vuetify from '../common/vuetify'
 
 import axios from 'axios'
 import Vue from 'vue'
@@ -15,9 +14,6 @@ import store from './store'
 
 import VueI18n from 'vue-i18n'
 Vue.use(VueI18n)
-
-import MuseUI from 'muse-ui'
-Vue.use(MuseUI)
 
 if (!process.env.IS_WEB) {
   Vue.use(require('vue-electron'))
@@ -39,11 +35,11 @@ function next () {
   })
 
   new Vue({
-    components: { App },
+    vuetify,
     router,
     store,
     i18n,
-    template: '<App/>'
+    render: (h) => h(App)
   }).$mount('#app')
 
   ipcRenderer.on(
@@ -69,6 +65,12 @@ function next () {
     IpcTypes.HAS_TRANSLATION,
     (event: Electron.Event, message: yuki.TranslationMessage) => {
       store.dispatch('Hooks/mergeTranslation', message)
+    }
+  )
+  ipcRenderer.on(
+    IpcTypes.HAS_DICT,
+    (event: Electron.Event, message: yuki.DictResult) => {
+      store.dispatch('View/setDict', message)
     }
   )
 }

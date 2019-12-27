@@ -2,17 +2,31 @@ import { app, dialog, ipcMain } from 'electron'
 import IpcTypes from '../../common/IpcTypes'
 const debug = require('debug')('yuki:ipc')
 import { extname } from 'path'
+import { format } from 'util'
+import BaseGame from '../BaseGame'
 import ConfigManager from '../config/ConfigManager'
 import DownloaderFactory from '../DownloaderFactory'
 import Game from '../Game'
+import GameFromProcess from '../GameFromProcess'
 import Hooker from '../Hooker'
+import Processes from '../Processes'
+import DictManager from '../translate/DictManager'
 import TranslationManager from '../translate/TranslationManager'
 import TranslatorWindow from '../TranslatorWindow'
 
-let runningGame: Game
+let runningGame: BaseGame
 let translatorWindow: TranslatorWindow | null
 
 export default function (mainWindow: Electron.BrowserWindow) {
+  require('debug').log = (message: any, ...optionalParams: any[]) => {
+    // tslint:disable-next-line: no-console
+    console.log(message, ...optionalParams)
+    mainWindow.webContents.send(
+      IpcTypes.HAS_NEW_DEBUG_MESSAGE,
+      format(message, ...optionalParams)
+    )
+  }
+
   ipcMain.on(IpcTypes.MAIN_PAGE_LOAD_FINISHED, () => {
     debug('main page load finished. starting apis...')
     TranslationManager.getInstance().initializeApis(
@@ -27,11 +41,16 @@ export default function (mainWindow: Electron.BrowserWindow) {
 
   ipcMain.on(
     IpcTypes.REQUEST_RUN_GAME,
-    (event: Electron.Event, game: yuki.Game) => {
-      mainWindow.hide()
-
-      runningGame = new Game(game)
+    (event: Electron.Event, game?: yuki.Game, process?: yuki.Process) => {
+      if (game) {
+        runningGame = new Game(game)
+      } else if (process) {
+        runningGame = new GameFromProcess(process)
+      } else return
       runningGame.on('started', () => {
+        mainWindow.hide()
+        mainWindow.webContents.send(IpcTypes.HAS_RUNNING_GAME)
+
         if (translatorWindow) translatorWindow.close()
         translatorWindow = new TranslatorWindow()
         translatorWindow.setGame(runningGame)
@@ -40,6 +59,9 @@ export default function (mainWindow: Electron.BrowserWindow) {
         if (translatorWindow) translatorWindow.close()
         translatorWindow = null
         mainWindow.show()
+      })
+      runningGame.on('abort', () => {
+        mainWindow.webContents.send(IpcTypes.GAME_ABORTED)
       })
       runningGame.start()
     }
@@ -67,6 +89,23 @@ export default function (mainWindow: Electron.BrowserWindow) {
     }
     debug('request config %s', ConfigManager.getInstance().getFilename(name))
     sendConfig(name, event)
+  })
+
+  ipcMain.on(IpcTypes.RELOAD_CONFIG, (name: string) => {
+    const configName = ConfigManager.getInstance().getFilename(name)
+    debug('reloading config %s', configName)
+    mainWindow.webContents.send(
+      IpcTypes.HAS_CONFIG,
+      configName,
+      ConfigManager.getInstance().get(configName)
+    )
+    if (translatorWindow) {
+      translatorWindow.getWindow().webContents.send(
+        IpcTypes.HAS_CONFIG,
+        configName,
+        ConfigManager.getInstance().get(configName)
+      )
+    }
   })
 
   function requestGame (event: Electron.Event) {
@@ -168,7 +207,20 @@ export default function (mainWindow: Electron.BrowserWindow) {
     IpcTypes.REQUEST_TRANSLATION,
     (event: Electron.Event, message: { id: number, text: string }) => {
       TranslationManager.getInstance().translate(message.text, (translation) => {
-        event.sender.send(IpcTypes.HAS_TRANSLATION, { id: message.id, translation })
+        try {
+          event.sender.send(IpcTypes.HAS_TRANSLATION, { id: message.id, translation })
+        } catch (e) {
+          return
+        }
+      })
+    }
+  )
+
+  ipcMain.on(
+    IpcTypes.REQUEST_DICT,
+    (event: Electron.Event, message: { dict: string, word: string }) => {
+      DictManager.find(message, (result) => {
+        event.sender.send(IpcTypes.HAS_DICT, result)
       })
     }
   )
@@ -191,6 +243,17 @@ export default function (mainWindow: Electron.BrowserWindow) {
     IpcTypes.REQUEST_DOWNLOAD_LIBRARY,
     (event: Electron.Event, packName: string) => {
       DownloaderFactory.makeLibraryDownloader(packName).start()
+    }
+  )
+
+  ipcMain.on(
+    IpcTypes.REQUEST_PROCESSES,
+    (event: Electron.Event) => {
+      Processes.get().then((processes) => {
+        event.sender.send(IpcTypes.HAS_PROCESSES, processes)
+      }).catch(() => {
+        event.sender.send(IpcTypes.HAS_PROCESSES, [])
+      })
     }
   )
 }

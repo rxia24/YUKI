@@ -41,14 +41,19 @@ declare namespace yuki {
       language: string
       localeChangers: LocaleChangerItems
       onlineApis: OnlineApiItem[]
+      dictionaries: Dictionaries
     }
 
     export interface Libraries {
       librariesRepoUrl: string
       mecab: LibraryItem
       translators: {
-        jBeijing: JBeijing;
+        jBeijing: JBeijing
       }
+    }
+
+    export interface Dictionaries {
+      lingoes: LibraryItem
     }
 
     export interface Texts extends Config {
@@ -60,6 +65,7 @@ declare namespace yuki {
       modifier: {
         removeAscii: boolean;
         deduplicate: boolean;
+        delineBreak: boolean;
       }
       merger: {
         enable: boolean;
@@ -77,6 +83,11 @@ declare namespace yuki {
         originalText: FontStyle;
         translationText: TranslationTextStyle;
         background: string;
+        renderMode: 'transparent' | 'translucent';
+        mecab: {
+          showRomaji: boolean;
+        }
+        autoHideTitlebar: boolean;
       }
     }
 

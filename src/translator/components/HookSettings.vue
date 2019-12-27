@@ -13,20 +13,30 @@
 </i18n>
 
 <template>
-  <div class="small-margin fixed-scroll">
-    <mu-button type="primary" @click="openInputHookDialog">{{$t('addHook')}}</mu-button>
-    <mu-dialog :title="$t('inputSpecialCode')" :open.sync="openInputHook">
-      <mu-text-field v-model="hookCode" :error-text="errorText"></mu-text-field>
-      <mu-button slot="actions" flat @click="closeInputHookDialog">{{$t('cancel')}}</mu-button>
-      <mu-button slot="actions" flat color="primary" @click="addHook">{{$t('ok')}}</mu-button>
-    </mu-dialog>
-    <yk-hook-info
-      v-for="hook in orderedHooks"
-      :hook="hook"
-      :isChosen="isChosen(hook.handle)"
-      :key="hook.handle + '-info'"
-      class="hook-info"
-    />
+  <div :class="classObject">
+    <v-btn type="primary" @click="openInputHookDialog">{{$t('addHook')}}</v-btn>
+
+    <v-dialog v-model="openInputHook" max-width="500px">
+      <v-card>
+        <v-card-title>
+          <span class="headline">{{$t('inputSpecialCode')}}</span>
+        </v-card-title>
+
+        <v-card-text>
+          <v-container>
+            <v-text-field v-model="hookCode" :error-messages="errorText" :label="$t('specialCode')"></v-text-field>
+          </v-container>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="blue darken-1" text @click="closeInputHookDialog">{{$t('cancel')}}</v-btn>
+          <v-btn color="primary" text @click="addHook">{{$t('ok')}}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <yk-hook-info v-for="hook in orderedHooks" :hook="hook" :isChosen="isChosen(hook.handle)" :key="hook.handle + '-info'" class="hook-info" />
   </div>
 </template>
 
@@ -84,6 +94,16 @@ export default class HookSettings extends Vue {
   public texts!: string[]
   @(namespace('Hooks').State('currentDisplayHookIndex'))
   public currentIndex!: number
+  @(namespace('View').State('isWindowTooHigh'))
+  public isWindowTooHigh!: boolean
+
+  get classObject () {
+    return {
+      'small-margin': true,
+      'fixed-scroll': !this.isWindowTooHigh,
+      'fixed-scroll-margin-top': this.isWindowTooHigh
+    }
+  }
 
   public openInputHookDialog () {
     this.openInputHook = true
@@ -110,10 +130,5 @@ export default class HookSettings extends Vue {
 <style scoped>
 .margin-top {
   margin-top: 1em;
-}
-
-.hook-info {
-  margin: 8px 0;
-  text-align: center;
 }
 </style>

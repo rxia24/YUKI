@@ -1,17 +1,14 @@
 import { exec } from 'child_process'
 const debug = require('debug')('yuki:game')
-import { EventEmitter } from 'events'
+import BaseGame from './BaseGame'
 import ConfigManager from './config/ConfigManager'
-import Hooker from './Hooker'
-import { registerProcessExitCallback } from './Win32'
 
-export default class Game extends EventEmitter {
+export default class Game extends BaseGame {
   private static readonly TIMEOUT = 1000
   private static readonly MAX_RESET_TIME = 10
   private execString: string
   private path: string
   private code: string
-  private pids: number[]
   private name: string
   private localeChanger: string
   private exeName: string
@@ -30,10 +27,6 @@ export default class Game extends EventEmitter {
   public start () {
     this.execGameProcess()
     this.registerHookerWithPid()
-  }
-
-  public getPids () {
-    return this.pids
   }
 
   public getInfo (): yuki.Game {
@@ -79,12 +72,11 @@ export default class Game extends EventEmitter {
       await this.findPids()
     } catch (e) {
       debug('could not find game %s. abort', this.exeName)
+      this.emit('abort')
       this.emit('exited')
       return
     }
-    this.injectProcessByPid()
-    this.emit('started', this)
-    this.registerProcessExitCallback()
+    this.afterGetPids()
   }
 
   private findPids () {
@@ -131,15 +123,5 @@ export default class Game extends EventEmitter {
       pids.push(parseInt(regexResult[i].replace('"', ''), 10))
     }
     return pids
-  }
-
-  private injectProcessByPid () {
-    this.pids.map((pid) => Hooker.getInstance().injectProcess(pid))
-  }
-
-  private registerProcessExitCallback () {
-    registerProcessExitCallback(this.pids, () => {
-      this.emit('exited', this)
-    })
   }
 }

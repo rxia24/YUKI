@@ -5,8 +5,8 @@ process.env.BABEL_ENV = "main";
 const path = require("path");
 const { dependencies, devDependencies } = require("../package.json");
 const webpack = require("webpack");
-
-const BabelMinifyWebpackPlugin = require("babel-minify-webpack-plugin");
+const InjectPlugin = require("webpack-inject-plugin");
+const HardSourceWebpackPlugin = require("hard-source-webpack-plugin");
 
 let mainConfig = {
   optimization: {
@@ -60,7 +60,15 @@ let mainConfig = {
     libraryTarget: "commonjs2",
     path: path.join(__dirname, "../dist/electron")
   },
-  plugins: [new webpack.NoEmitOnErrorsPlugin()],
+  plugins: [
+    new InjectPlugin.default(
+      function() {
+        return "process.env.DEBUG = 'yuki:*';process.env.DEBUG_COLORS = '1';";
+      },
+      { entryOrder: InjectPlugin.ENTRY_ORDER.First }
+    ),
+    new webpack.NoEmitOnErrorsPlugin()
+  ],
   resolve: {
     extensions: [".ts", ".js", ".json", ".node"]
   },
@@ -83,7 +91,6 @@ if (process.env.NODE_ENV !== "production") {
  */
 if (process.env.NODE_ENV === "production") {
   mainConfig.plugins.push(
-    new BabelMinifyWebpackPlugin(),
     new webpack.DefinePlugin({
       "process.env.NODE_ENV": '"production"'
     })

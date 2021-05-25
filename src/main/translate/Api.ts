@@ -94,7 +94,9 @@ export default class Api implements yuki.Translator {
     if (this.config.responseBodyPattern.startsWith('J')) {
       return this.parseResponseByJsObject(body)
     } else if (this.config.responseBodyPattern.startsWith('R')) {
-      return this.parseResponseByRegExp(body)
+      return this.fixEscapeCharacters(
+        this.parseResponseByRegExp(body)
+      )
     } else {
       debug(
         '[%s] no such response parser type: %s',
@@ -114,7 +116,11 @@ export default class Api implements yuki.Translator {
     const scriptString = this.config.responseBodyPattern
       .substring(1)
       .replace('%RESPONSE%', `result = response`)
-    vm.runInNewContext(scriptString, this.responseVmContext)
+    try {
+      vm.runInNewContext(scriptString, this.responseVmContext)
+    } catch (e) {
+      return `ERR: ${e}`
+    }
     return this.responseVmContext.result
   }
 
@@ -128,5 +134,13 @@ export default class Api implements yuki.Translator {
     } else {
       return ''
     }
+  }
+
+  private fixEscapeCharacters (body: string): string {
+    return body
+      .replace(/&quot;/g, '"')
+      .replace(/&#34;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&#39;/g, "'")
   }
 }

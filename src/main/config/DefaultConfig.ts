@@ -13,19 +13,13 @@ export default class DefaultConfig extends Config {
       },
       onlineApis: [
         {
-          enable: false,
-          external: true,
-          jsFile: 'config\\hjdictApi.js',
-          name: '沪江'
-        },
-        {
           enable: true,
           external: true,
-          jsFile: 'config\\hjdictApi.js',
+          jsFile: 'config\\youdaoApi.js',
           name: '有道'
         },
         {
-          enable: true,
+          enable: false,
           method: 'POST',
           name: '谷歌',
           requestBodyFormat: 'X{"q": %TEXT%, "sl": "ja", "tl": "zh-CN"}',
@@ -33,7 +27,7 @@ export default class DefaultConfig extends Config {
           url: 'https://translate.google.cn/m'
         },
         {
-          enable: true,
+          enable: false,
           method: 'POST',
           name: '彩云',
           requestBodyFormat:
@@ -48,6 +42,30 @@ export default class DefaultConfig extends Config {
           external: true,
           jsFile: 'config\\qqApi.js',
           name: '腾讯'
+        },
+        {
+          enable: false,
+          external: true,
+          jsFile: 'config\\tencentApi.js',
+          name: '腾讯云'
+        },
+        {
+          enable: false,
+          external: true,
+          jsFile: 'config\\azureApi.js',
+          name: 'Azure'
+        },
+        {
+          enable: false,
+          external: true,
+          jsFile: 'config\\baiduApi.js',
+          name: '百度'
+        },
+        {
+          enable: false,
+          external: true,
+          jsFile: 'config\\newBaiduApi.js',
+          name: '百度开放平台'
         }
       ],
       translators: { jBeijing: { enable: false, path: '', dictPath: '' } },

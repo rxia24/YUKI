@@ -56,6 +56,7 @@ import { ipcRenderer, remote } from 'electron'
 import IpcTypes from '../common/IpcTypes'
 
 import YkTitlebar from '@/components/Titlebar.vue'
+import { updateWindowHeight } from './common/Window'
 
 @Component({
   components: {
@@ -120,25 +121,10 @@ export default class App extends Vue {
       this.$store.dispatch('View/setButtonsShown', true)
     })
     document.addEventListener('mouseleave', () => {
-      if (
-        this.$router.currentRoute.path === '/translate' &&
-        this.currentOriginText !== ''
-      ) {
+      if (this.$route.path === '/translate' && this.currentOriginText !== '') {
         this.$store.dispatch('View/setButtonsShown', false)
       }
     })
-  }
-
-  public updateWindowHeight (offset: number) {
-    const newHeight = document.body.offsetHeight + offset
-    const window = remote.getCurrentWindow()
-    const width = window.getSize()[0]
-    if (newHeight > 640) {
-      this.$store.dispatch('View/setWindowTooHigh', true)
-    } else {
-      this.$store.dispatch('View/setWindowTooHigh', false)
-    }
-    window.setSize(width, newHeight)
   }
 
   @Watch('currentIndex')
@@ -152,17 +138,14 @@ export default class App extends Vue {
   }
 
   public updated () {
-    if (
-      this.$router.currentRoute.path === '/translate' &&
-      !this.isGetDictResult
-    ) {
+    if (this.$route.path === '/translate' && !this.isGetDictResult) {
       if (this.isButtonsShown && !this.isWindowTooHigh) {
         this.$nextTick(() => {
-          this.updateWindowHeight(24)
+          updateWindowHeight(this, true, 24)
         })
       } else {
         this.$nextTick(() => {
-          this.updateWindowHeight(0)
+          updateWindowHeight(this, true, 0)
         })
       }
     }
